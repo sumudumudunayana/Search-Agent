@@ -369,22 +369,53 @@ class CornersProblem(search.SearchProblem):
 
 def cornersHeuristic(state: Any, problem: CornersProblem):
     """
-    A heuristic for the CornersProblem that you defined.
+    A heuristic for the CornersProblem.
 
-      state:   The current search state
-               (a data structure you chose in your search problem)
-
-      problem: The CornersProblem instance for this layout.
-
-    This function should always return a number that is a lower bound on the
-    shortest path from the state to a goal of the problem; i.e.  it should be
-    admissible (as well as consistent).
+    Uses Manhattan distance to construct a minimum spanning tree
+    over the unvisited corners, plus the distance from Pacman's
+    current position to the closest unvisited corner.
     """
-    corners = problem.corners # These are the corner coordinates
-    walls = problem.walls # These are the walls of the maze, as a Grid (game.py)
 
-    "*** YOUR CODE HERE ***"
-    return 0 # Default to trivial solution
+    position, visitedCorners = state
+
+    unvisitedCorners = [
+        corner for corner in problem.corners if corner not in visitedCorners
+    ]
+
+    if not unvisitedCorners:
+        return 0
+
+    def manhattanDistance(point1, point2):
+        return abs(point1[0] - point2[0]) + abs(point1[1] - point2[1])
+
+    # Distance from Pacman to the closest unvisited corner.
+    startDistance = min(
+        manhattanDistance(position, corner) for corner in unvisitedCorners
+    )
+
+    # Minimum spanning tree cost between the unvisited corners.
+    mstCost = 0
+    connected = {unvisitedCorners[0]}
+    remaining = set(unvisitedCorners[1:])
+
+    while remaining:
+        bestDistance = float("inf")
+        bestCorner = None
+
+        for connectedCorner in connected:
+            for remainingCorner in remaining:
+                distance = manhattanDistance(connectedCorner, remainingCorner)
+
+                if distance < bestDistance:
+                    bestDistance = distance
+                    bestCorner = remainingCorner
+
+        mstCost += bestDistance
+        connected.add(bestCorner)
+        remaining.remove(bestCorner)
+
+    return startDistance + mstCost
+
 
 class AStarCornersAgent(SearchAgent):
     "A SearchAgent for FoodSearchProblem using A* and your foodHeuristic"
